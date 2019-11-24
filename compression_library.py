@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import gc
 import sys
 import csv
 import bz2
@@ -40,6 +41,32 @@ class Compression:
 
         pool = multiprocessing.Pool(cpuCores + 1)
         pool.map(Parallel.compressionParallelized, self.dataChunks)
+
+    def getCsvChunkGenerator(self):
+         dataChunks = {}
+
+        with open(self.fileName) as openFile:
+            reader = csv.reader(openFile, delimiter = ',')
+        
+            positionList = Table.findAttributeInHeaderRow(next(reader), self.columnsToBreakUpOn)
+        
+            for dataRow in reader:
+                tupleTag = Table.getChunkTuple(dataRow, positionList)
+                if tupleTag in dataChunks:
+                    dataChunks[tupleTag].append(dataRow)
+                else:
+                    dataChunks[tupleTag] = [dataRow]
+
+                if len(dataChunks[tupleTag] >= self.memoryCap:
+                    yield (tupleTag, dataChunks[tupleTag], self.whichCompressionAlgToUse, self.mongoObject) 
+                    del dataChunks[tupleTag]
+                    gc.collect()
+                    
+    def breakUpCsvAndCompressChunksMemorySensative():
+        cpuCores = multiprocessing.cpu_count()
+
+        pool = multiprocessing.Pool(cpuCores + 1)
+        list(pool.imap(Parallel.compressionParallelized, getCsvChunkGenerator()))
 
 
 class Table(Compression):
