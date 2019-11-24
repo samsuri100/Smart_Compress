@@ -2,8 +2,9 @@
 import os
 import sys
 import argparse
-from compression_library import Compression
+from mongo_library import Mongo
 from decompression_library import Decompression
+from compression_library import Compression, Table
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog = 'SmartCompress', \
@@ -53,11 +54,18 @@ if __name__ == '__main__':
                         help = '[-m, --method = compress: collection within Mongo Database to write to] ~ \
                                 [-m, --method = decompress: collection within Mongo Database to retrieve from]')
     args = parser.parse_args()
- 
+       
     fieldsToBreakOrReconstructOn = args.fields
     whichCompressionAlgToUse = args.algorithm[0]
     mongoDbName = args.database[0]
     mongoCollectionName = args.collection[0]
+
+    fieldsToBreakOrReconstructOn = Table.checkValidFieldNames(fieldsToBreakOrReconstructOn)
+
+    mongoDbName, mongoCollectionName = Mongo.checkValidDbAndConnectionName(mongoDbName, mongoCollectionName)
+    connectionString = Mongo.askUserForConnectionString()
+    Mongo.checkForValidConnection(connectionString)
+    mongoObject = Mongo(connectionString, mongoDbName, mongoCollectionName)
     
     compressOrDecompress = args.method[0]
 
@@ -66,7 +74,7 @@ if __name__ == '__main__':
         if not os.path.isfile(inputFileName):
             sys.exit('Please enter a valid input file, program terminating')
 
-        comp = Compression(inputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse, mongoDbName, mongoCollectionName)
+        comp = Compression(inputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse, mongoObject)
         comp.iterateCsvBreakUpOnAttributes()
         comp.compressChunksInParallel()
 

@@ -8,12 +8,11 @@ import zipfile
 import multiprocessing 
 
 class Compression:
-    def __init__(self, inputFileName, columnsToBreakUpOn, whichCompressionAlgToUse, mongoDbName, mongoCollectionName):
+    def __init__(self, inputFileName, columnsToBreakUpOn, whichCompressionAlgToUse, mongoObject):
         self.fileName = inputFileName
         self.columnsToBreakUpOn = columnsToBreakUpOn
         self.whichCompressionAlgToUse = whichCompressionAlgToUse
-        self.mongoDbName = mongoDbName
-        self.mongoCollectionName = mongoCollectionName
+        self.mongoObject = mongoObject
 
         self.dataChunks = []
     
@@ -44,6 +43,26 @@ class Compression:
 
 
 class Table(Compression):
+    def checkValidFieldNames(columnsToBreakUpOn):
+        fieldListWithRemovedQuotes = []
+
+        for field in columnsToBreakUpOn:
+            if not ((field[0] == '"') and (field[-1] == '"')):
+                sys.exit('Each field name must be wrapped in 2 levels of quotes, \'"<FIELD NAME>"\' , \
+                          \nthe quotes will be removed automatically, they do not have to be present in the CSV header row, \
+                          \nprogram terminating')
+            else:
+                field = field[1:-1]
+                fieldListWithRemovedQuotes.append(field)
+
+            if len(field.split('\x00')) > 1:
+                sys.exit('Fields cannot contain NULL character, program terminating')
+            
+            if field[0] == '$':
+                sys.exit("Fields cannot start with '$', program terminating")
+
+            return fieldListWithRemovedQuotes
+    
     def findAttributeInHeaderRow(headerRow, columnsToBreakUpOn):
         positionList = []
         headerRowDict = {}

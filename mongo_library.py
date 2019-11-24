@@ -1,6 +1,7 @@
 #!/usr/bin/python3
+import os
 import sys
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 
 class Mongo:
     def __init__(self, connectionString, databaseName, collectionName):
@@ -8,7 +9,46 @@ class Mongo:
         self.databaseName = databaseName
         self.collectionName = collectionName
 
-    def askUserForConnectionString(self):
+    def checkValidDbAndConnectionName(mongoDbName, mongoCollectionName):
+        invalidCharDbList = ['/',"\\",'.',' ','"','$']
+
+        if not ((mongoDbName[0] == '"') and (mongoDbName[-1] == '"')):
+            sys.exit('Database name must be wrapped in 2 levels of quotes, \'"<DB NAME>"\', \
+                      \nthe quotes will be removed automatically, program terminating')
+        else:
+            mongoDbName = mongoDbName[1:-1]
+        
+        if not ((mongoCollectionName[0] == '"') and (mongoCollectionName[-1] == '"')):
+            sys.exit('Collection name must be wrapped in 2 levels of quotes, \'"<COLLECTION NAME>"\', \
+                      \nthe quotes will be removed automatically, program terminating')
+        else:
+            mongoCollectionName = mongoCollectionName[1:-1]
+
+        if len(mongoDbName) >= 64:
+            sys.exit('Length of database name is over 63 characters, program terminating')
+
+        for invalidChar in invalidCharDbList:
+            if invalidChar in mongoDbName:
+                sys.exit("Invalid char: '" + invalidChar + "' in database name, program terminating")
+
+        if '$' in mongoCollectionName:
+            sys.exit("Invalid char: '$' in collection name, program terminating")
+
+        if mongoCollectionName == '':
+            sys.exit('Collection name cannot be empty string, program terminating')
+        if mongoDbName == '':
+            sys.exit('Database name cannot be empty string, program terminating') 
+    
+        if '.' in mongoCollectionName:
+            if mongoCollectionName.split('.')[0] == 'system':
+                sys.exit("Collection name cannot start with 'system.', program terminating")
+
+        if len(mongoDbName) + len(mongoCollectionName) > 119:
+            sys.exit("Max size of collection namespace '<db name>.<collection name>' is 120 bytes, program terminating")
+
+        return mongoDbName, mongoCollectionName
+
+    def askUserForConnectionString():
         userAnswer = ''
         connectionString = ''
 
@@ -22,7 +62,7 @@ class Mongo:
                 break
     
         if userAnswer == 'N':
-            return (False, None)
+            return None
         
         print('Please insert the connection string into a text file and provide the file name below: ')
         connectionStringFileName = input()
@@ -33,9 +73,9 @@ class Mongo:
         with open(connectionStringFileName) as openFile:
             connectionString = openFile.read()
 
-        return (True, connectionString)
+        return connectionString
 
-    def checkForValidConnection(self, userDefinedConnectionString):
+    def checkForValidConnection(userDefinedConnectionString):
         timeOutVal = 1
         connectionString = ''
 
@@ -49,8 +89,8 @@ class Mongo:
 
         try:
             client.server_info()
-        except pymongo.errors.ServerSelectionTimeoutError:
+        except errors.ServerSelectionTimeoutError:
             sys.exit('Could not establish connection with Mongo Database, program terminating')
 
-    def writeToDatabase(self):
-        
+    def writeToDatabase():
+       pass 
