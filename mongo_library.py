@@ -92,6 +92,13 @@ class Mongo:
         except errors.ServerSelectionTimeoutError:
             sys.exit('Could not establish connection with Mongo Database, program terminating')
 
-    def writeToDatabase(compressedStream, tag):
+    def writeToDatabase(self, compressedStream, tag):
+        dbName = self.databaseName
+        dataTagDict = {'Test': 1}
+        client = MongoClient(self.connectionString) 
+
+        dbString = 'db = client.' + dbName
+        exec(dbString)
         
-       
+        collectionString = 'result = db.' + self.collectionName + '.insert_one(dataTagDict)'
+        exec(collectionString)

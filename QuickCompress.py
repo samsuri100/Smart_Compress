@@ -37,7 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--algorithm', \
                         nargs = 1, \
                         type = str, \
-                        choices = ['gzip', 'bzip2', 'xz', 'zip'], \
+                        choices = ['gzip', 'bzip2', 'xz', 'zlib'], \
                         required = True, \
                         help = '[-m, --method = compress: compression algorithm to use] ~ \
                                 [-m, --method = decompress: decompression algorithm to use]')
