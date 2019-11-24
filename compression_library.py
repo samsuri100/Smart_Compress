@@ -4,7 +4,7 @@ import csv
 import bz2
 import gzip
 import lzma
-import zipfile
+import zlib
 import multiprocessing 
 
 class Compression:
@@ -34,7 +34,7 @@ class Compression:
         self.dataChunks = dataChunks
 
     def compressChunksInParallel(self):
-        self.dataChunks = [(k, v) for k, v in self.dataChunks.items()]
+        self.dataChunks = [(tag, data, self.whichCompressionAlgToUse, self.mongoObject) for tag, data in self.dataChunks.items()]
     
         cpuCores = multiprocessing.cpu_count()
 
@@ -89,9 +89,21 @@ class Table(Compression):
         return tuple(labelList)
 
 
-class Parallel(Compression):
+class Parallel():
     def compressionParallelized(chunk):
-        #compressedStream = ''
-        #if self.whichCompressionAlgToUse == 'bzip2'
-        print(chunk)
-        print('\n')
+        compressedStream = ''
+        tag = chunk[0]
+        algToUse = chunk[2]
+        dataToCompress = str(chunk[1]).encode("utf-8")
+        mongoConnectionObject = chunk[3]
+       
+        if algToUse == 'bzip2':
+            compressedStream = bz2.compress(dataToCompress)
+        elif algToUse == 'gzip':
+            compressedStream = gzip.compress(dataToCompress)
+        elif algToUse == 'xz':
+            compressedStream = lzma.compress(dataToCompress)
+        else:
+            compressedStream = zlib.compress(dataToCompress)
+
+        mongoConnectionObject.writeToDatabase(compressedStream, tag)

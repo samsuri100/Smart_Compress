@@ -92,5 +92,6 @@ class Mongo:
         except errors.ServerSelectionTimeoutError:
             sys.exit('Could not establish connection with Mongo Database, program terminating')
 
-    def writeToDatabase():
-       pass 
+    def writeToDatabase(compressedStream, tag):
+        
+       
