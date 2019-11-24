@@ -68,7 +68,11 @@ if __name__ == '__main__':
     whichCompressionAlgToUse = args.algorithm[0]
     mongoDbName = args.database[0]
     mongoCollectionName = args.collection[0]
-    memoryCap = args.memory[0]
+    
+    if args.memory is not None:
+        memoryCap = args.memory[0]
+    else:
+        memoryCap = args.memory
 
     fieldsToBreakOrReconstructOn = Table.checkValidFieldNames(fieldsToBreakOrReconstructOn)
 
@@ -80,21 +84,25 @@ if __name__ == '__main__':
     compressOrDecompress = args.version[0]
 
     if compressOrDecompress == 'compress':
+        print('Entering compression mode')
         inputFileName = args.input[0]
         if not os.path.isfile(inputFileName):
             sys.exit('Please enter a valid input file, program terminating')
 
         comp = Compression(inputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse, mongoObject)
         
-        if memoryCap is not None:
+        if memoryCap is None:
             comp.iterateCsvBreakUpOnAttributes()
             comp.compressChunksInParallel()
         else:
+            comp.memoryCap = memoryCap
             comp.breakUpCsvAndCompressChunksMemorySensative()
 
-    '''
+    ''' 
     else:
+        print('Entering decompression mode')
         outputFileName = args.output[0]
 
-        decomp = Decompression(outputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse, mongoDbName, mongoCollectionName)
+        decomp = Decompression(outputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse, mongoObject)
+        decomp. 
     '''

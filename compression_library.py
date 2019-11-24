@@ -15,15 +15,17 @@ class Compression:
         self.whichCompressionAlgToUse = whichCompressionAlgToUse
         self.mongoObject = mongoObject
 
+        self.memoryCap = None
         self.dataChunks = []
     
     def iterateCsvBreakUpOnAttributes(self):
         dataChunks = {}
-
+        
         with open(self.fileName) as openFile:
             reader = csv.reader(openFile, delimiter = ',')
-        
+            
             positionList = Table.findAttributeInHeaderRow(next(reader), self.columnsToBreakUpOn)
+            print('Breaking up CSV into segments, based on field/s:', self.columnsToBreakUpOn)
         
             for dataRow in reader:
                 tupleTag = Table.getChunkTuple(dataRow, positionList)
@@ -35,7 +37,8 @@ class Compression:
         self.dataChunks = dataChunks
 
     def compressChunksInParallel(self):
-        self.dataChunks = [(tag, data, self.whichCompressionAlgToUse, self.mongoObject) for tag, data in self.dataChunks.items()]
+        print("Compressing segments in parallel using '" + self.whichCompressionAlgToUse + "' compression algorithm")
+        self.dataChunks = [(tag, data, self.whichCompressionAlgToUse, self.mongoObject, self.columnsToBreakUpOn) for tag, data in self.dataChunks.items()]
     
         cpuCores = multiprocessing.cpu_count()
 
@@ -43,12 +46,14 @@ class Compression:
         pool.map(Parallel.compressionParallelized, self.dataChunks)
 
     def getCsvChunkGenerator(self):
-         dataChunks = {}
+        dataChunks = {}
+        firstYield = 1
 
         with open(self.fileName) as openFile:
             reader = csv.reader(openFile, delimiter = ',')
         
             positionList = Table.findAttributeInHeaderRow(next(reader), self.columnsToBreakUpOn)
+            print("Breaking up CSV into segments of max length '" + str(self.memoryCap) + "', based on field/s:", self.columnsToBreakUpOn)
         
             for dataRow in reader:
                 tupleTag = Table.getChunkTuple(dataRow, positionList)
@@ -56,17 +61,22 @@ class Compression:
                     dataChunks[tupleTag].append(dataRow)
                 else:
                     dataChunks[tupleTag] = [dataRow]
-
-                if len(dataChunks[tupleTag] >= self.memoryCap:
-                    yield (tupleTag, dataChunks[tupleTag], self.whichCompressionAlgToUse, self.mongoObject) 
+                
+                if len(dataChunks[tupleTag]) >= self.memoryCap:
+                    yield (tupleTag, dataChunks[tupleTag], self.whichCompressionAlgToUse, self.mongoObject, self.columnsToBreakUpOn) 
                     del dataChunks[tupleTag]
                     gc.collect()
+                
+                if firstYield == 1:
+                    firstYield = 0
+                    print("Compressing segments in parallel once max length of '" + str(self.memoryCap) + \
+                          "' is reached, using '" + self.whichCompressionAlgToUse + "' compression algorithm")
                     
-    def breakUpCsvAndCompressChunksMemorySensative():
+    def breakUpCsvAndCompressChunksMemorySensative(self):
         cpuCores = multiprocessing.cpu_count()
 
         pool = multiprocessing.Pool(cpuCores + 1)
-        list(pool.imap(Parallel.compressionParallelized, getCsvChunkGenerator()))
+        list(pool.imap(Parallel.compressionParallelized, self.getCsvChunkGenerator()))
 
 
 class Table(Compression):
@@ -123,6 +133,7 @@ class Parallel():
         algToUse = chunk[2]
         dataToCompress = str(chunk[1]).encode("utf-8")
         mongoConnectionObject = chunk[3]
+        mongoFieldNames = chunk[4]
        
         if algToUse == 'bzip2':
             compressedStream = bz2.compress(dataToCompress)
@@ -133,4 +144,4 @@ class Parallel():
         else:
             compressedStream = zlib.compress(dataToCompress)
 
-        mongoConnectionObject.writeToDatabase(compressedStream, tag)
+        mongoConnectionObject.writeToDatabase(compressedStream, tag, mongoFieldNames)

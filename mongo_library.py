@@ -17,6 +17,9 @@ class Mongo:
                       \nthe quotes will be removed automatically, program terminating')
         else:
             mongoDbName = mongoDbName[1:-1]
+    
+        if (mongoDbName == 'pass') or (mongoCollectionName == 'pass'):
+            sys.exit("Database name or collection name cannot be 'pass', program terminating")
         
         if not ((mongoCollectionName[0] == '"') and (mongoCollectionName[-1] == '"')):
             sys.exit('Collection name must be wrapped in 2 levels of quotes, \'"<COLLECTION NAME>"\', \
@@ -89,12 +92,15 @@ class Mongo:
 
         try:
             client.server_info()
+            print("Established connection to Mongo Database")
         except errors.ServerSelectionTimeoutError:
             sys.exit('Could not establish connection with Mongo Database, program terminating')
 
-    def writeToDatabase(self, compressedStream, tag):
+    def writeToDatabase(self, compressedStream, tag, mongoFieldNames):
         dbName = self.databaseName
-        dataTagDict = {'Test': 1}
+        dataTagDict = dict(zip(mongoFieldNames, tag))
+        dataTagDict['compressedObject'] = compressedStream
+
         client = MongoClient(self.connectionString) 
 
         dbString = 'db = client.' + dbName
@@ -102,3 +108,5 @@ class Mongo:
         
         collectionString = 'result = db.' + self.collectionName + '.insert_one(dataTagDict)'
         exec(collectionString)
+
+        print('Segment succefuly written to Mongo Database:', list(tag))
