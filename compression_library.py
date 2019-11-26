@@ -85,15 +85,16 @@ class Table(Compression):
 
         for field in columnsToBreakUpOn:
             if not ((field[0] == '"') and (field[-1] == '"')):
-                sys.exit('Each field name must be wrapped in 2 levels of quotes, \'"<FIELD NAME>"\' , \
-                          \nthe quotes will be removed automatically, they do not have to be present in the CSV header row, \
+                sys.exit('Each field name must be wrapped in 2 levels of quotes, \'"<FIELD NAME>"\' \
+                          \nor \'"<FIELD NAME=VALUE>"\' , the quotes will be removed automatically, \
+                          \nfor compression, they do not have to be present in the CSV header row, \
                           \nprogram terminating')
             else:
                 field = field[1:-1]
                 fieldListWithRemovedQuotes.append(field)
 
             if len(field.split('\x00')) > 1:
-                sys.exit('Fields cannot contain NULL character, program terminating')
+                sys.exit('Fields, and, for decompression, values, cannot contain NULL character, program terminating')
             
             if field[0] == '$':
                 sys.exit("Fields cannot start with '$', program terminating")
@@ -145,3 +146,22 @@ class Parallel():
             compressedStream = zlib.compress(dataToCompress)
 
         mongoConnectionObject.writeToDatabase(compressedStream, tag, mongoFieldNames)
+
+    def decompressionParallelized(chunk):
+        sharedList = chunk[1]
+        dataToDecompress = chunk[0]
+        algToUse = chunk[2]
+        tag = chunk[3]
+
+        print('Decompressing segment:', tag)
+
+        if algToUse == 'bzip2':
+            compressedStream = bz2.decompress(dataToDecompress)
+        elif algToUse == 'gzip':
+            compressedStream = gzip.decompress(dataToDecompress)
+        elif algToUse == 'xz':
+            compressedStream = lzma.decompress(dataToDecompress)
+        else:
+            compressedStream = zlib.decompress(dataToDecompress)
+
+        sharedList.append((compressedStream, tag))

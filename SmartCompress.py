@@ -30,10 +30,11 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--fields', \
                         nargs = '+', \
                         type = str, \
-                        metavar = 'FIELD', \
+                        metavar = 'FIELD /or/ FIELD=VALUE', \
                         required = True, \
-                        help = '[-v, --version = compress: columns attributes that the file will be broken on up] ~ \
-                                [-v, --version = decompress: columns attributes that the file segments will be retrieved and constructed on]')
+                        help = '[-v, --version = compress: columns attributes that the file will be broken on up, only provide FIELD names: FIELD FIELD...] ~ \
+                                [-v, --version = decompress: columns attributes that the file segments will be retrieved and constructed on, provide FIELD \
+                                names and lookup VALUE: FIELD=VALUE, FIELD=VALUE...]')
     parser.add_argument('-a', '--algorithm', \
                         nargs = 1, \
                         type = str, \
@@ -60,7 +61,9 @@ if __name__ == '__main__':
                         help = '[-v, --version = compress: default program loads entire CSV into memory. If CSV \
                                 is larger than memory, or there is a danger of thrashing, provide integer to  \
                                 serve as a segment "cap". This will write to the database every time this cap \
-                                is reached for a particular set of fields, and then flush the data out of memory.]')
+                                is reached for a particular set of fields, and then flush the data out of memory. \
+                                Value should be very large for Fields with many common elements, very small for \
+                                Fields with only a few common elements.]')
 
     args = parser.parse_args()
        
@@ -97,12 +100,12 @@ if __name__ == '__main__':
         else:
             comp.memoryCap = memoryCap
             comp.breakUpCsvAndCompressChunksMemorySensative()
-
-    ''' 
+     
     else:
         print('Entering decompression mode')
-        outputFileName = args.output[0]
+        outputFileName = args.input[0]
 
-        decomp = Decompression(outputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse, mongoObject)
-        decomp. 
-    '''
+        decomp = Decompression(outputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse)
+        decomp.checkValidOutputFileName()
+        decomp.segments = mongoObject.retrieveSegmentsFromDatabase(decomp.columnsToReconstructOn)
+        decomp.decompressAndCombineInParallel()

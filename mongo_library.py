@@ -97,16 +97,44 @@ class Mongo:
             sys.exit('Could not establish connection with Mongo Database, program terminating')
 
     def writeToDatabase(self, compressedStream, tag, mongoFieldNames):
-        dbName = self.databaseName
         dataTagDict = dict(zip(mongoFieldNames, tag))
         dataTagDict['compressedObject'] = compressedStream
 
         client = MongoClient(self.connectionString) 
 
-        dbString = 'db = client.' + dbName
+        dbString = 'db = client.' + self.databaseName
         exec(dbString)
         
         collectionString = 'result = db.' + self.collectionName + '.insert_one(dataTagDict)'
         exec(collectionString)
 
-        print('Segment succefuly written to Mongo Database:', list(tag))
+        print('Segment successfully written to Mongo Database:', list(tag))
+
+    def retrieveSegmentsFromDatabase(self, columnsToReconstructOn):
+        queryDict = {}
+        queryResult = None
+
+        client = MongoClient(self.connectionString)
+
+        for fieldValuePair in columnsToReconstructOn:
+            brockenUp = fieldValuePair.split('=')
+            if len(brockenUp) == 1:
+                sys.exit('Field name for decompression must be in format FIELD=VALUE, no equal sign detected, program terminating')
+            else:
+                queryDict[brockenUp[0]] = brockenUp[1]
+
+        dbString = 'db = client.' + self.databaseName
+        exec(dbString)
+        
+        _locals = locals()
+        queryString = 'queryResult = db.' + self.collectionName + '.find(' + str(queryDict) + ')'
+        exec(queryString, globals(), _locals)
+
+        queryResult = list(_locals['queryResult'])
+
+        if len(queryResult) == 0:
+            sys.exit('Successfully queried input, 0 results, program terminating')
+        else:
+            print('Successfully retrieved query results on:', self.collectionName + ', from Mongo Database:', self.databaseName)
+
+        return queryResult
