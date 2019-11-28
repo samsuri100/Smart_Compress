@@ -72,7 +72,7 @@ if __name__ == '__main__':
     mongoDbName = args.database[0]
     mongoCollectionName = args.collection[0]
     
-    #For compression version, checking to see of optional argument was set, None by default
+    #For compression version, checking to see of optional argument, memory, was set, None by default
     if args.memory is not None:
         memoryCap = args.memory[0]
     else:
@@ -103,11 +103,17 @@ if __name__ == '__main__':
         
         #Optional argument 'memory' was not set:
         if memoryCap is None:
+            #Breaks up CSV into segments, loads entire CSV into memory
             comp.iterateCsvBreakUpOnAttributes()
+            #Compresses and writes segments to Mongo DB in parallel
             comp.compressChunksInParallel()
         #Optional argument 'memory' was set:
         else:
+            #Max length of each segment
             comp.memoryCap = memoryCap
+            #Break up CSV into segments of up to max length, after segment is passed to 
+            #compression process, segment is cleared from Smart Compress memory
+            #Compression and writing happen in parallel
             comp.breakUpCsvAndCompressChunksMemorySensative()
 
     #Decompression version:
@@ -116,6 +122,9 @@ if __name__ == '__main__':
         outputFileName = args.input[0]
 
         decomp = Decompression(outputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse)
+        #Checking to make sure user defined output file name is valid
         decomp.checkValidOutputFileName()
+        #Sending query to Mongo Db on 'fields' argument
         decomp.segments = mongoObject.retrieveSegmentsFromDatabase(decomp.columnsToReconstructOn)
+        #Decompressing and writing results in parallel
         decomp.decompressAndCombineInParallel()

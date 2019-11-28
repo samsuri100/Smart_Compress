@@ -1,2 +1,4 @@
 *.swp
+*.pyc
 output.csv
+__pycache__
