@@ -64,7 +64,7 @@ if __name__ == '__main__':
                                 is reached for a particular set of fields, and then flush the data out of memory. \
                                 Value should be very large for Fields with many common elements, very small for \
                                 Fields with only a few common elements.]')
-
+    #Using argparse as command line argument parser
     args = parser.parse_args()
        
     fieldsToBreakOrReconstructOn = args.fields
@@ -72,35 +72,45 @@ if __name__ == '__main__':
     mongoDbName = args.database[0]
     mongoCollectionName = args.collection[0]
     
+    #For compression version, checking to see of optional argument was set, None by default
     if args.memory is not None:
         memoryCap = args.memory[0]
     else:
         memoryCap = args.memory
 
+    #Checking to make sure field name are valid
     fieldsToBreakOrReconstructOn = Table.checkValidFieldNames(fieldsToBreakOrReconstructOn)
 
+    #Checking to see if Mongo database and collection names are valid, if so, removing quotes around them
     mongoDbName, mongoCollectionName = Mongo.checkValidDbAndConnectionName(mongoDbName, mongoCollectionName)
+    #See if the user wants to keep default connection string (localhost at port 27017) or supply their own inside a file
     connectionString = Mongo.askUserForConnectionString()
+    #Checks to see if a connection can be made based on the connection string
     Mongo.checkForValidConnection(connectionString)
     mongoObject = Mongo(connectionString, mongoDbName, mongoCollectionName)
     
     compressOrDecompress = args.version[0]
 
+    #Compression version:
     if compressOrDecompress == 'compress':
         print('Entering compression mode')
         inputFileName = args.input[0]
+        #Checking to see if input file exists
         if not os.path.isfile(inputFileName):
             sys.exit('Please enter a valid input file, program terminating')
 
         comp = Compression(inputFileName, fieldsToBreakOrReconstructOn, whichCompressionAlgToUse, mongoObject)
         
+        #Optional argument 'memory' was not set:
         if memoryCap is None:
             comp.iterateCsvBreakUpOnAttributes()
             comp.compressChunksInParallel()
+        #Optional argument 'memory' was set:
         else:
             comp.memoryCap = memoryCap
             comp.breakUpCsvAndCompressChunksMemorySensative()
-     
+
+    #Decompression version:
     else:
         print('Entering decompression mode')
         outputFileName = args.input[0]
