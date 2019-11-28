@@ -37,7 +37,7 @@ Given the file testInput.csv, a subset of a Federal Election Commission data-set
 
 If we run Smart Compress on it, in compression version, breaking it up by the 'OCCUPATION' field:
 ```
-python SmartCompress.py -v compress -i testInput.csv -a gzip -f '"OCCUPATION"' -d 'FecTestData' -c "Indiv2016Test'
+python SmartCompress.py -v compress -i testInput.csv -a gzip -f '"OCCUPATION"' -d '"FecTestData"' -c '"Indiv2016Test"'
 ```
 
 We get the response:
@@ -84,19 +84,16 @@ Decompressing segment: [OCCUPATION: VP AND CIO]
 Writing segment [OCCUPATION: VP AND CIO] to file 'output.csv'
 ```
 
-And our output file, 'output.csv' looks like:
+And our output file, 'output.csv', looks like:
 
 |         |   |   |   |           |   |   |       |         |            |   |         |                |          |       |   |   |                  |      |   |   |                     |
 |---------|---|---|---|-----------|---|---|-------|---------|------------|---|---------|----------------|----------|-------|---|---|------------------|------|---|---|---------------------|
 |C00088591|N  |M3 |P  |15970306992|15 |IND|NASTASE| DAVID W.|FALLS CHURCH|VA |220424511|NORTHROP GRUMMAN|VP AND CIO|2132015|200|   |20150309_695      |998834|   |   |4.03202015124089E+018|
 |C00088591|N  |M3 |P  |15970306993|15 |IND|NASTASE| DAVID W.|FALLS CHURCH|VA |220424511|NORTHROP GRUMMAN|VP AND CIO|2272015|200|   |20150224153748-603|998834|   |   |4.03202015124089E+018|
 
-
-
-
-
-
-
-
-
-
+## Planned Future Updates:
+-Will have the output csv, for the decompression version, have a header row with the original column names  
+  
+-What happens if you forgot the compression algorithm you used originally, and you need to decompress something?  
+  
+-Benchmarks for Smart Compress versus simple compress and decompression
